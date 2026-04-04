@@ -1,0 +1,180 @@
+name: 🚀 CD — Production (main)
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  PHP_VERSION: '8.2'
+
+jobs:
+  # ──────────────────────────────────────────
+  # JOB 1: Pre-deployment Validation
+  # ──────────────────────────────────────────
+  validate:
+    name: ✅ Pre-deployment Validation
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: smart_health_ai_prod_test
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, bcmath
+          coverage: xdebug
+
+      - name: Install Dependencies (production-optimized)
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Setup Test Environment
+        run: |
+          cp .env.example .env
+          sed -i 's/APP_ENV=.*/APP_ENV=testing/' .env
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=smart_health_ai_prod_test/' .env
+          sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env
+          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=password/' .env
+          php artisan key:generate
+          php artisan jwt:secret --force
+          php artisan migrate --force
+
+      - name: Run Test Suite (90% coverage required for prod)
+        run: |
+          composer install --no-interaction --prefer-dist --optimize-autoloader
+          php artisan test \
+            --coverage-clover coverage.xml \
+            --min-coverage=90
+
+  # ──────────────────────────────────────────
+  # JOB 2: Security Audit (MANDATORY for prod)
+  # ──────────────────────────────────────────
+  security-audit:
+    name: 🔐 Security Audit (MANDATORY)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+
+      - name: Install All Dependencies
+        run: composer install --no-interaction
+
+      - name: Composer Audit — FAIL on HIGH vulnerabilities
+        run: composer audit --format=plain
+
+      - name: PHP Security Checker
+        uses: symfonycorp/security-checker-action@v5
+
+      - name: Full Secret Scan (all history)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --only-verified
+
+      - name: Check No Debug Code Left
+        run: |
+          echo "Checking for debug artifacts..."
+          ! grep -r "dd(" app/ || (echo "❌ Found dd() in code" && exit 1)
+          ! grep -r "var_dump(" app/ || (echo "❌ Found var_dump() in code" && exit 1)
+          ! grep -r "print_r(" app/ || (echo "❌ Found print_r() in code" && exit 1)
+          ! grep -r "APP_DEBUG=true" .env.example || echo "⚠️ APP_DEBUG=true in .env.example — verify"
+          echo "✅ No debug code found"
+
+  # ──────────────────────────────────────────
+  # JOB 3: Build Production Docker Image
+  # ──────────────────────────────────────────
+  build:
+    name: 🐳 Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [validate, security-audit]
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,prefix=sha-
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ──────────────────────────────────────────
+  # JOB 4: Deploy to Production (MANUAL APPROVAL REQUIRED)
+  # ──────────────────────────────────────────
+  deploy-production:
+    name: 🚀 Deploy → PRODUCTION
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://smarthealthai.com
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Notify Deployment Start
+        run: echo "🚀 Production deployment started by ${{ github.actor }}"
+
+      - name: Deploy to Production
+        run: |
+          echo "Deploying image: ${{ needs.build.outputs.image-tag }}"
+          # TODO: Add SSH / cloud deployment steps
+
+      - name: Run Production Health Check
+        run: |
+          sleep 30
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ vars.PRODUCTION_URL }}/api/health || echo "000")
+          echo "Health check: $response"
+          [ "$response" = "200" ] || (echo "❌ Production health check FAILED" && exit 1)
+          echo "✅ Production deployment successful"
+
+      - name: Rollback on Failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed — initiating rollback..."
+          # TODO: Add rollback logic
+
+      - name: Notify Success
+        if: success()
+        run: echo "✅ Production deployment completed successfully"
