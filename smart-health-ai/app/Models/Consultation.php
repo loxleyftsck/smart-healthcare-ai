@@ -22,4 +22,9 @@ class Consultation extends Model
     {
         return $this->belongsTo(Patient::class);
     }
+
+    public function triageLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(TriageLog::class);
+    }
 }
