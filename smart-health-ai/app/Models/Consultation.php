@@ -4,7 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Consultation extends Model
 {
@@ -23,7 +25,12 @@ class Consultation extends Model
         return $this->belongsTo(Patient::class);
     }
 
-    public function triageLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    public function triageLogs(): HasMany
     {
         return $this->hasMany(TriageLog::class);
     }

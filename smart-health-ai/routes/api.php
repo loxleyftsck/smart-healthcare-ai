@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -86,4 +87,7 @@ Route::middleware('auth:api')->group(function () {
 
     // AI Consultation
     Route::apiResource('consultations', ConsultationController::class)->only(['index', 'store', 'show']);
+
+    // Patient Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index']);
 });

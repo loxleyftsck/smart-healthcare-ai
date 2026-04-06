@@ -17,6 +17,7 @@ class Patient extends Model
         'date_of_birth',
         'gender',
         'address',
+        'tenant_id',
     ];
 
     protected $casts = [
@@ -26,6 +27,11 @@ class Patient extends Model
     public function consultations(): HasMany
     {
         return $this->hasMany(Consultation::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function triageLogs(): HasMany

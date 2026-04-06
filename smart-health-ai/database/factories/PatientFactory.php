@@ -23,6 +23,7 @@ class PatientFactory extends Factory
             'date_of_birth' => fake()->date(),
             'gender' => fake()->randomElement(['male', 'female', 'other']),
             'address' => fake()->address(),
+            'tenant_id' => \App\Models\Tenant::factory(),
         ];
     }
 }
