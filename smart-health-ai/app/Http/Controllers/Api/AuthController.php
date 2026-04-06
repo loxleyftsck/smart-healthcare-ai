@@ -12,16 +12,16 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
-class AuthController extends Controller implements HasMiddleware
+class AuthController extends Controller
 {
     /**
-     * Get the middleware that should be assigned to the controller.
+     * Create a new AuthController instance.
+     *
+     * @return void
      */
-    public static function middleware(): array
+    public function __construct()
     {
-        return [
-            new Middleware('auth:api', except: ['login', 'register']),
-        ];
+        $this->middleware('auth:api', ['except' => ['login', 'register']]);
     }
 
 
