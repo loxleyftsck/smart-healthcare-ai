@@ -64,6 +64,7 @@ class TriageService:
         try:
             data = json.loads(cleaned)
             # Validate required fields
+            data.setdefault("intent", "symptom_check")
             data.setdefault("severity", "MEDIUM")
             data.setdefault("confidence", 0.7)
             data.setdefault("response", "Analysis complete.")
@@ -76,6 +77,7 @@ class TriageService:
             logger.error(f"Failed to parse Gemini JSON: {cleaned[:300]}")
             # Return a fallback with MEDIUM severity
             return {
+                "intent": "symptom_check",
                 "severity": "MEDIUM",
                 "confidence": 0.5,
                 "response": "Unable to fully parse AI response. Manual review recommended.",

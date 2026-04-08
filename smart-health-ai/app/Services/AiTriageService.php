@@ -19,7 +19,7 @@ class AiTriageService
     public function __construct()
     {
         $this->aiServiceUrl = config('services.ai_triage.url', 'http://localhost:8001');
-        $this->timeout = config('services.ai_triage.timeout', 10);
+        $this->timeout = config('services.ai_triage.timeout', 120);
     }
 
     /**
@@ -31,13 +31,20 @@ class AiTriageService
     public function analyze(string $message): array
     {
         try {
-            $response = Http::timeout($this->timeout)
-                ->post("{$this->aiServiceUrl}/triage", [
-                    'message' => $message,
-                ]);
+            $token = request()->bearerToken();
+
+            $http = Http::timeout($this->timeout);
+            if ($token) {
+                $http = $http->withToken($token);
+            }
+
+            $response = $http->post("{$this->aiServiceUrl}/triage", [
+                'message' => $message,
+            ]);
 
             if ($response->successful()) {
-                return $response->json();
+                $json = $response->json();
+                return $json['data'] ?? $json;
             }
 
             Log::warning('AI triage service returned error', [

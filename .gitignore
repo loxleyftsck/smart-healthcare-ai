@@ -64,3 +64,11 @@ npm-debug.log*
 
 # Logs
 *.log
+
+# Python Virtual Environment
+venv/
+.venv/
+
+# Startup logs
+/ai-triage-service/uvicorn_out.txt
+/ai-triage-service/uvicorn_err.txt

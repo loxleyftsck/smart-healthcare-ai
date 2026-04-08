@@ -38,26 +38,22 @@ class MistralProvider(AIProvider):
         """Check if Ollama is running and model is available."""
         try:
             import httpx
-            import asyncio
 
-            async def check():
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    try:
-                        resp = await client.get(f"{self.ollama_url}/api/tags")
-                        if resp.status_code == 200:
-                            models = resp.json().get("models", [])
-                            model_names = [m.get("name", "").split(":")[0] for m in models]
-                            if self.model_name in model_names or any(self.model_name in m for m in model_names):
-                                logger.info(f"✅ Ollama available with {self.model_name} model")
-                                self.available = True
-                            else:
-                                logger.warning(f"⚠️  {self.model_name} not found. Available: {model_names}")
-                                logger.info(f"   Install: ollama pull {self.model_name}")
-                    except Exception as e:
-                        logger.warning(f"⚠️  Cannot connect to Ollama at {self.ollama_url}: {e}")
-                        logger.info("   Make sure Ollama is running: ollama serve")
-
-            asyncio.run(check())
+            with httpx.Client(timeout=5.0) as client:
+                try:
+                    resp = client.get(f"{self.ollama_url}/api/tags")
+                    if resp.status_code == 200:
+                        models = resp.json().get("models", [])
+                        model_names = [m.get("name", "").split(":")[0] for m in models]
+                        if self.model_name in model_names or any(self.model_name in m for m in model_names):
+                            logger.info(f"✅ Ollama available with {self.model_name} model")
+                            self.available = True
+                        else:
+                            logger.warning(f"⚠️  {self.model_name} not found. Available: {model_names}")
+                            logger.info(f"   Install: ollama pull {self.model_name}")
+                except Exception as e:
+                    logger.warning(f"⚠️  Cannot connect to Ollama at {self.ollama_url}: {e}")
+                    logger.info("   Make sure Ollama is running: ollama serve")
         except ImportError:
             logger.warning("httpx not installed. Install with: pip install httpx")
 
@@ -123,6 +119,7 @@ SYMPTOMS: {symptoms}
 
 Respond ONLY with valid JSON (no markdown, no extra text):
 {{
+  "intent": "emergency_triage|symptom_check|general_inquiry",
   "severity": "HIGH|MEDIUM|LOW",
   "confidence": 0.5-1.0,
   "response": "one-sentence summary",
@@ -154,6 +151,7 @@ Rules: HIGH=life-threatening (chest pain, stroke, bleeding, can't breathe), MEDI
 
     def _validate_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and normalize response."""
+        data.setdefault("intent", "symptom_check")
         data.setdefault("severity", "MEDIUM")
         data.setdefault("confidence", 0.7)
         data.setdefault("response", "Analysis complete.")
@@ -170,6 +168,7 @@ Rules: HIGH=life-threatening (chest pain, stroke, bleeding, can't breathe), MEDI
     def _fallback_analysis(self, symptoms: str) -> Dict[str, Any]:
         """Return safe fallback."""
         return {
+            "intent": "symptom_check",
             "severity": "MEDIUM",
             "confidence": 0.5,
             "response": "Unable to analyze. Manual review needed.",

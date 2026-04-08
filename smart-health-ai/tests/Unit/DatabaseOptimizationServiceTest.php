@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 use App\Services\DatabaseOptimizationService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;

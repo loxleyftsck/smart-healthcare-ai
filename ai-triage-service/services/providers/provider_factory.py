@@ -87,6 +87,7 @@ class MockProvider(AIProvider):
             severity = "LOW"
 
         return {
+            "intent": "symptom_check",
             "severity": severity,
             "confidence": 0.6,
             "response": f"Mock analysis of: {symptoms[:50]}",

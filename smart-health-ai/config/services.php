@@ -37,7 +37,7 @@ return [
 
     'ai_triage' => [
         'url'     => env('AI_TRIAGE_SERVICE_URL', 'http://localhost:8001'),
-        'timeout' => env('AI_TRIAGE_TIMEOUT', 10),
+        'timeout' => env('AI_TRIAGE_TIMEOUT', 120),
     ],
 
     'ollama' => [
