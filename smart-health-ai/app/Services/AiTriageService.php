@@ -32,7 +32,7 @@ class AiTriageService
     {
         try {
             $response = Http::timeout($this->timeout)
-                ->post("{$this->aiServiceUrl}/api/triage", [
+                ->post("{$this->aiServiceUrl}/triage", [
                     'message' => $message,
                 ]);
 

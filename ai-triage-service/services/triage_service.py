@@ -1,5 +1,6 @@
 """
-Triage Service — Google Gemini AI integration for clinical symptom analysis.
+Triage Service — AI-powered clinical symptom analysis.
+Supports multiple AI providers (Gemini, Mistral, etc.)
 """
 
 import os
@@ -8,34 +9,21 @@ import logging
 import asyncio
 from typing import Optional
 
+from .providers import ProviderFactory
+
 logger = logging.getLogger("smarthealth-triage.service")
 
 
 class TriageService:
     """
-    Analyzes patient symptoms using Google Gemini AI and returns
-    structured triage results with severity, recommendations, and
-    extracted symptom tags.
+    Analyzes patient symptoms using configured AI provider
+    (Gemini, Mistral, or mock) and returns structured triage results.
     """
 
-    SEVERITY_LEVELS = ["LOW", "MEDIUM", "HIGH"]
-
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY", "")
-        self.mock_mode = (
-            not self.api_key or self.api_key == "YOUR_GEMINI_API_KEY_HERE"
-        )
-        if not self.mock_mode:
-            try:
-                import google.generativeai as genai
-                genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel("gemini-2.0-flash-exp")
-                logger.info("✅ Gemini AI model initialized.")
-            except ImportError:
-                logger.warning("google-generativeai not installed; switching to mock mode.")
-                self.mock_mode = True
-        else:
-            logger.warning("⚠️  No Gemini API key found. Running in MOCK mode.")
+        self.provider = ProviderFactory.get_provider()
+        provider_info = self.provider.get_status()
+        logger.info(f"TriageService initialized with provider: {provider_info}")
 
     async def analyze(
         self,
@@ -45,60 +33,22 @@ class TriageService:
     ) -> dict:
         """
         Analyze symptoms and return a structured triage result.
+        Delegates to the active AI provider.
         """
-        if self.mock_mode:
-            return await self._mock_analysis(symptoms)
-
-        return await self._gemini_analysis(symptoms, patient_context)
-
-    async def _gemini_analysis(self, symptoms: str, patient_context: dict) -> dict:
-        """Perform real Gemini AI analysis."""
-        prompt = self._build_prompt(symptoms, patient_context)
-
-        # Run blocking Gemini call in executor
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None, lambda: self.model.generate_content(prompt)
+        logger.info(f"Analyzing symptoms for patient {patient_id}: {symptoms[:80]}...")
+        
+        result = await self.provider.analyze(
+            symptoms=symptoms,
+            patient_id=patient_id,
+            patient_context=patient_context,
         )
+        
+        logger.info(f"Triage result: severity={result.get('severity')}, confidence={result.get('confidence')}")
+        return result
 
-        raw_text = response.text
-        logger.info(f"Gemini raw response: {raw_text[:200]}")
-
-        return self._parse_gemini_response(raw_text, symptoms)
-
-    def _build_prompt(self, symptoms: str, patient_context: dict) -> str:
-        age = patient_context.get("age", "unknown")
-        gender = patient_context.get("gender", "unknown")
-        history = patient_context.get("medical_history", "none reported")
-
-        return f"""You are a senior AI clinical triage assistant in an emergency telemedicine platform.
-
-PATIENT CONTEXT:
-- Age: {age}
-- Gender: {gender}
-- Known Medical History: {history}
-
-REPORTED SYMPTOMS:
-{symptoms}
-
-TASK:
-Analyze the symptoms and return a JSON object with EXACTLY this structure (no markdown, no extra text):
-{{
-  "severity": "HIGH" | "MEDIUM" | "LOW",
-  "confidence": 0.0-1.0,
-  "response": "one-sentence clinical summary",
-  "recommendation": "specific recommended next action",
-  "symptoms": ["list", "of", "extracted", "symptom", "tags"],
-  "icd10_codes": ["relevant ICD-10 codes if applicable"],
-  "urgency_hours": integer (how many hours before patient must be seen; 0 = immediate)
-}}
-
-Rules:
-- HIGH = life-threatening (chest pain, stroke signs, severe bleeding, difficulty breathing)
-- MEDIUM = needs medical attention within 24 hours
-- LOW = can be managed at home or via telemedicine
-- Be conservative: when in doubt, escalate severity.
-"""
+    def get_provider_status(self) -> dict:
+        """Get current provider status."""
+        return self.provider.get_status()
 
     def _parse_gemini_response(self, raw_text: str, original_symptoms: str) -> dict:
         """Parse Gemini response and extract structured JSON."""

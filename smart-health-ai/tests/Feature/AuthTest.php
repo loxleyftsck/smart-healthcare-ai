@@ -27,8 +27,8 @@ class AuthTest extends TestCase
 
     public function test_user_can_login_with_valid_credentials()
     {
-        User::create([
-            'name' => 'Login User',
+        // Use factory which properly sets tenant_id
+        $user = User::factory()->create([
             'email' => 'login@example.com',
             'password' => Hash::make('SecurePassword123!'),
         ]);

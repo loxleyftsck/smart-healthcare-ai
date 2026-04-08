@@ -57,8 +57,16 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // PATH B Day 2: Connection pooling configuration
+            'pool' => [
+                'size' => env('DB_POOL_SIZE', 10),                    // Number of connections in pool
+                'min_idle' => env('DB_POOL_MIN_IDLE', 5),             // Minimum idle connections
+                'max_lifetime' => env('DB_POOL_MAX_LIFETIME', 3600),  // Max connection lifetime (seconds)
+                'connection_timeout' => env('DB_CONNECTION_TIMEOUT', 30), // Connection timeout (seconds)
+            ],
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET SESSION sql_mode='STRICT_TRANS_TABLES'", // Optimization
             ]) : [],
         ],
 

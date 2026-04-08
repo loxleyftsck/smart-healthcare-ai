@@ -77,15 +77,20 @@ class ConsultationApiTest extends TestCase
 
     public function test_can_get_consultations_list()
     {
-        $headers = $this->authenticate();
-        $patient = Patient::factory()->create();
+        $user = User::factory()->create();
+        $headers = ['Authorization' => "Bearer " . JWTAuth::fromUser($user)];
         
-        Consultation::create([
+        // Create patient under same tenant as authenticated user
+        $patient = Patient::factory()->create(['tenant_id' => $user->tenant_id]);
+        
+        // Use the factory which properly sets tenant_id
+        Consultation::factory()->create([
             'patient_id' => $patient->id,
             'session_id' => 'test-session-123',
             'message' => 'Test message',
             'intent' => 'general_inquiry',
             'response' => 'Test response',
+            'tenant_id' => $user->tenant_id,
         ]);
 
         $response = $this->withHeaders($headers)->getJson('/api/consultations');

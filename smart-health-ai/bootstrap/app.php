@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(append: [
             \App\Http\Middleware\RequestLoggingMiddleware::class,
+            \App\Http\Middleware\ResponseCompressionMiddleware::class, // PATH B Day 3: Response compression
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

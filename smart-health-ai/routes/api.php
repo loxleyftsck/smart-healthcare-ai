@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConsultationController;
+use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\DashboardController;
@@ -87,6 +88,12 @@ Route::middleware('auth:api')->group(function () {
 
     // AI Consultation
     Route::apiResource('consultations', ConsultationController::class)->only(['index', 'store', 'show']);
+
+    // Mistral 7B Chat (Local LLM)
+    Route::prefix('chat')->group(function () {
+        Route::post('/', [ChatController::class, 'chat'])->name('chat.send');
+        Route::get('/status', [ChatController::class, 'status'])->name('chat.status');
+    });
 
     // Patient Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);

@@ -40,4 +40,10 @@ return [
         'timeout' => env('AI_TRIAGE_TIMEOUT', 10),
     ],
 
+    'ollama' => [
+        'url'     => env('OLLAMA_URL', 'http://localhost:11434'),
+        'model'   => env('OLLAMA_MODEL', 'mistral'),
+        'timeout' => env('OLLAMA_TIMEOUT', 60),
+    ],
+
 ];
