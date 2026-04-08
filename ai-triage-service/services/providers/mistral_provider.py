@@ -111,25 +111,33 @@ class MistralProvider(AIProvider):
         gender = patient_context.get("gender", "unknown")
         history = patient_context.get("medical_history", "none reported")
 
-        return f"""You are a clinical triage AI assistant for emergency telemedicine.
+        return f"""You are a specialized clinical triage assistant for an emergency telemedicine platform.
+Your goal is to analyze patient symptoms and categorize the urgency of care.
 
-PATIENT: Age {age}, {gender}
-HISTORY: {history}
-SYMPTOMS: {symptoms}
+PATIENT PROFILE:
+- Age: {age}
+- Gender: {gender}
+- Medical History: {history}
+
+CURRENT SYMPTOMS:
+{symptoms}
 
 Respond ONLY with valid JSON (no markdown, no extra text):
 {{
   "intent": "emergency_triage|symptom_check|general_inquiry",
   "severity": "HIGH|MEDIUM|LOW",
   "confidence": 0.5-1.0,
-  "response": "one-sentence summary",
-  "recommendation": "next action",
+  "response": "short clinical summary",
+  "recommendation": "immediate next step for the patient",
   "symptoms": ["tag1", "tag2"],
   "icd10_codes": [],
   "urgency_hours": 24
 }}
 
-Rules: HIGH=life-threatening (chest pain, stroke, bleeding, can't breathe), MEDIUM=24h, LOW=home care.
+Definitions: 
+- HIGH: Life-threatening (e.g., chest pain, difficulty breathing, stroke signs). Immediate ER.
+- MEDIUM: Needs evaluation within 24 hours (e.g., high fever, severe abdominal pain).
+- LOW: Can be managed at home or scheduled for a routine visit.
 """
 
     def _parse_response(self, raw_text: str, original_symptoms: str) -> Dict[str, Any]:

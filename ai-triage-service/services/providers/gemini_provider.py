@@ -87,6 +87,7 @@ REPORTED SYMPTOMS:
 TASK:
 Analyze the symptoms and return a JSON object with EXACTLY this structure (no markdown, no extra text):
 {{
+  "intent": "emergency_triage|symptom_check|general_inquiry",
   "severity": "HIGH" | "MEDIUM" | "LOW",
   "confidence": 0.0-1.0,
   "response": "one-sentence clinical summary",
@@ -124,6 +125,7 @@ Rules:
 
     def _validate_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and normalize AI response."""
+        data.setdefault("intent", "symptom_check")
         data.setdefault("severity", "MEDIUM")
         data.setdefault("confidence", 0.7)
         data.setdefault("response", "Analysis complete.")
@@ -141,6 +143,7 @@ Rules:
     def _fallback_analysis(self, symptoms: str) -> Dict[str, Any]:
         """Return safe fallback response."""
         return {
+            "intent": "symptom_check",
             "severity": "MEDIUM",
             "confidence": 0.5,
             "response": "Unable to analyze. Manual review recommended.",

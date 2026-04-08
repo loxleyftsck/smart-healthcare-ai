@@ -146,4 +146,19 @@ class AiTriageService
 
         return $found ?: ['symptom_not_identified'];
     }
+
+    /**
+     * Check if AI service is healthy.
+     *
+     * @return bool
+     */
+    public function isHealthy(): bool
+    {
+        try {
+            $response = Http::timeout(5)->get("{$this->aiServiceUrl}/health");
+            return $response->successful();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
 }
