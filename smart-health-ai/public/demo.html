@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartHealth AI - Triage Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00ffcc;
+            --secondary: #6e00ff;
+            --bg-color: #0b0c10;
+            --surface: rgba(30,30,36,0.7);
+            --surface-border: rgba(255,255,255,0.1);
+            --text-main: #ffffff;
+            --text-muted: #c5c6c7;
+            --danger: #ff4b4b;
+            --warning: #ffb703;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(110,0,255,0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(0,255,204,0.15) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            background-attachment: fixed;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 2rem;
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: 1fr;
+            animation: fadeIn 0.8s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1, h2 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        /* Glassmorphism Card Element */
+        .glass-card {
+            background: var(--surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--surface-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 35px 60px -15px rgba(110,0,255, 0.3);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type="text"], input[type="email"], input[type="password"], textarea {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--surface-border);
+            color: white;
+            padding: 1rem 1.2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(0,255,204,0.2);
+            background: rgba(0,0,0,0.5);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        button {
+            width: 100%;
+            background: linear-gradient(135deg, var(--secondary) 0%, #a252ff 100%);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, #00b38f 100%);
+            z-index: -1;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(110,0,255,0.4);
+        }
+
+        button:hover::before {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #result-box {
+            display: none;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border-radius: 16px;
+            background: rgba(0,0,0,0.4);
+            border-left: 4px solid var(--primary);
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 0.8rem;
+            font-family: 'Outfit', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .severity-HIGH { background: rgba(255, 75, 75, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+        .severity-MEDIUM { background: rgba(255, 183, 3, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+        .severity-LOW { background: rgba(0, 255, 204, 0.2); color: var(--primary); border: 1px solid var(--primary); }
+
+        .symptom-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .system-logs {
+            margin-top: 1rem;
+            font-family: monospace;
+            background: #000;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #0f0;
+            height: 100px;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--surface-border);
+            padding-bottom: 1rem;
+        }
+        .tab {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .tab.active {
+            color: white;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1rem;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px 3px 0 0;
+            box-shadow: 0 -2px 10px rgba(0,255,204,0.5);
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease forwards; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div>
+            <h1>SmartHealth AI</h1>
+            <p class="subtitle">Next-Generation Autonomous Triage Assistant</p>
+        </div>
+
+        <div class="glass-card">
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTheme('auth')">1. Authentication</button>
+                <button class="tab" onclick="switchTheme('triage')">2. AI Consultation</button>
+                <button class="tab" onclick="fetchDashboard()">3. Dashboard</button>
+            </div>
+
+            <!-- AUTH TAB -->
+            <div id="auth-tab" class="tab-content active">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="email" value="test@smarthealth.ai" placeholder="Enter patient email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" value="password" placeholder="Enter password">
+                </div>
+                <button onclick="login()" id="btn-login">
+                    <span class="btn-text">Authenticate via API</span>
+                    <div class="loading-spinner"></div>
+                </button>
+            </div>
+
+            <!-- TRIAGE TAB -->
+            <div id="triage-tab" class="tab-content">
+                <div class="form-group">
+                    <label>Patient ID</label>
+                    <input type="text" id="patient_id" placeholder="Ex: 1" value="1">
+                </div>
+                <div class="form-group">
+                    <label>Describe your symptoms</label>
+                    <textarea id="symptoms_payload" placeholder="I have been experiencing a very tight chest pain and shortness of breath since yesterday morning..."></textarea>
+                </div>
+                <button onclick="consultAI()" id="btn-triage">
+                    <span class="btn-text">Analyze via Gemini LLM</span>
+                    <div class="loading-spinner"></div>
+                </button>
+
+                <div id="result-box">
+                    <div class="severity-badge" id="res-severity">HIGH SEVERITY</div>
+                    <div style="font-family: 'Outfit'; font-size: 1.2rem; margin-bottom: 0.5rem;" id="res-message">Analysis Complete.</div>
+                    <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;" id="res-recommendation">Seek ER immediately.</p>
+                    
+                    <div style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #888;">Detected Symptoms:</div>
+                    <div id="res-tags"></div>
+                </div>
+            </div>
+
+            <!-- DASHBOARD TAB -->
+            <div id="dashboard-tab" class="tab-content">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 12px; border: 1px solid var(--surface-border);">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Total Consultations</p>
+                        <h2 id="dash-total" style="font-size: 2rem; color: var(--primary);">0</h2>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 12px; border: 1px solid var(--surface-border);">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">High Risk Cases</p>
+                        <h2 id="dash-risk" style="font-size: 2rem; color: var(--danger);">0</h2>
+                    </div>
+                </div>
+                
+                <h3 style="margin-bottom: 1rem; font-family: 'Outfit'; font-weight: 600;">Recent Consultations history</h3>
+                <div id="dashboard-list" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.8rem;">
+                    <div style="color: var(--text-muted); font-style: italic;">No data loaded. Click refresh below.</div>
+                </div>
+
+                <button onclick="fetchDashboard()" id="btn-dashboard" style="margin-top: 1.5rem;">
+                    <span class="btn-text">Refresh Data</span>
+                    <div class="loading-spinner"></div>
+                </button>
+            </div>
+
+            <div class="system-logs" id="terminal">System Initialized. Waiting for input...<br></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8888/api';
+        let JWToken = null;
+
+        function log(msg) {
+            const term = document.getElementById('terminal');
+            term.innerHTML += `> ${msg}<br>`;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function switchTheme(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            if(event) event.target.classList.add('active');
+            document.getElementById(tabId + '-tab').classList.add('active');
+        }
+
+        function toggleLoading(btnId, isLoad) {
+            const btn = document.getElementById(btnId);
+            btn.querySelector('.btn-text').style.display = isLoad ? 'none' : 'block';
+            btn.querySelector('.loading-spinner').style.display = isLoad ? 'block' : 'none';
+            btn.disabled = isLoad;
+        }
+
+        async function fetchDashboard() {
+            if(!JWToken) {
+                alert("Please authenticate first!");
+                switchTheme('auth');
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                return;
+            }
+
+            switchTheme('dashboard');
+            document.querySelectorAll('.tab')[2].classList.add('active');
+            toggleLoading('btn-dashboard', true);
+            log("Fetching patient analytics dashboard...");
+
+            try {
+                const res = await fetch(`${API_URL}/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${JWToken}`, 'Accept': 'application/json' }
+                });
+                
+                const responseData = await res.json();
+                if(responseData.status === 'success') {
+                    const data = responseData.data;
+                    document.getElementById('dash-total').innerText = data.metrics.total_consultations;
+                    document.getElementById('dash-risk').innerText = data.metrics.recent_high_severity;
+                    
+                    const listContainer = document.getElementById('dashboard-list');
+                    listContainer.innerHTML = '';
+
+                    if(data.recent_consultations.length === 0) {
+                        listContainer.innerHTML = '<div style="color: var(--text-muted);">No consultations found.</div>';
+                    } else {
+                        data.recent_consultations.forEach(c => {
+                            let severity = c.triage_logs[0]?.severity || 'UNKNOWN';
+                            let color = severity === 'HIGH' ? 'var(--danger)' : (severity === 'MEDIUM' ? 'var(--warning)' : 'var(--primary)');
+                            
+                            listContainer.innerHTML += `
+                            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; border-left: 3px solid ${color};">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span style="font-weight: 600;">Patient ID: ${c.patient_id}</span>
+                                    <span style="color: ${color}; font-size: 0.85rem; font-weight: 800;">[ ${severity} ]</span>
+                                </div>
+                                <p style="color: var(--text-muted); font-size: 0.9rem;">${c.message.substring(0, 80)}...</p>
+                            </div>`;
+                        });
+                    }
+                    log("<span style='color:#0f0'>Dashboard metrics loaded successfully.</span>");
+                }
+            } catch(e) {
+                log(`<span style='color:#f00'>Error loading dashboard: ${e.message}</span>`);
+            }
+            toggleLoading('btn-dashboard', false);
+        }
+
+        async function login() {
+            toggleLoading('btn-login', true);
+            try {
+                // To guarantee it succeeds for demo, attempt register first, if fails, perform login
+                log("Ensuring user exists in database...");
+                await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers:{ 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({
+                        name: "Demo Patient",
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value,
+                        password_confirmation: document.getElementById('password').value
+                    })
+                });
+
+                log("Attempting JWT Authentication...");
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers:{ 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value
+                    })
+                });
+                
+                const data = await res.json();
+                if(data.access_token) {
+                    JWToken = data.access_token;
+                    log("<span style='color:#0f0'>Success! JWT Token acquired.</span>");
+                    
+                    // Create Patient Profile implicitly
+                    await fetch(`${API_URL}/patients`, {
+                        method: 'POST',
+                        headers:{ 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${JWToken}` },
+                        body: JSON.stringify({
+                            name: "Demo Patient",
+                            email: document.getElementById('email').value,
+                            phone: "081234567890",
+                            date_of_birth: "1990-01-01"
+                        })
+                    });
+                    
+                    setTimeout(() => switchTheme('triage'), 800);
+                    document.querySelectorAll('.tab')[1].classList.add('active');
+                    document.querySelectorAll('.tab')[0].classList.remove('active');
+                } else {
+                    log("<span style='color:#f00'>Auth Failed. Check credentials.</span>");
+                }
+            } catch (err) {
+                log(`<span style='color:#f00'>Network Error: ${err.message}. Is backend running on port 8080?</span>`);
+            }
+            toggleLoading('btn-login', false);
+        }
+
+        async function consultAI() {
+            if(!JWToken) {
+                alert("Please authenticate first!");
+                switchTheme('auth');
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.querySelectorAll('.tab')[1].classList.remove('active');
+                return;
+            }
+
+            toggleLoading('btn-triage', true);
+            const msg = document.getElementById('symptoms_payload').value;
+            const patId = document.getElementById('patient_id').value;
+            
+            document.getElementById('result-box').style.display = 'none';
+            log("Transmitting payload to Phase 3 Gemini Microservice...");
+
+            try {
+                const res = await fetch(`${API_URL}/consultations`, {
+                    method: 'POST',
+                    headers:{ 
+                        'Content-Type': 'application/json', 
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${JWToken}`
+                    },
+                    body: JSON.stringify({
+                        patient_id: patId,
+                        message: msg
+                    })
+                });
+                
+                const responseData = await res.json();
+                
+                if(!res.ok) {
+                    log(`<span style='color:#f00'>API Error: ${responseData.message}</span>`);
+                } else {
+                    log("<span style='color:#0f0'>AI Triage Completed. Rendering results...</span>");
+                    
+                    const data = responseData.data;
+                    const aiDetails = data.ai_details;
+                    
+                    // Render UI
+                    const badge = document.getElementById('res-severity');
+                    badge.className = 'severity-badge severity-' + aiDetails.severity;
+                    badge.innerText = `${aiDetails.severity} SEVERITY (Conf: ${aiDetails.confidence})`;
+                    
+                    document.getElementById('res-message').innerText = aiDetails.response;
+                    document.getElementById('res-recommendation').innerText = aiDetails.recommendation;
+                    
+                    const tagsDiv = document.getElementById('res-tags');
+                    tagsDiv.innerHTML = '';
+                    aiDetails.symptoms.forEach(s => {
+                        tagsDiv.innerHTML += `<span class="symptom-tag">${s}</span>`;
+                    });
+
+                    document.getElementById('result-box').style.display = 'block';
+                }
+            } catch (err) {
+                log(`<span style='color:#f00'>AI Service Error: ${err.message}.</span>`);
+            }
+            toggleLoading('btn-triage', false);
+        }
+    </script>
+</body>
+</html>

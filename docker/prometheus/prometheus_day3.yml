@@ -1,0 +1,146 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'smart-health-ai-monitoring'
+    environment: 'production'
+    project: 'PATH B Optimization'
+    day: 'Day 3 - Advanced Optimizations'
+
+# Scrape configurations
+scrape_configs:
+  # Laravel application metrics (if using prometheus exporter)
+  - job_name: 'laravel-app'
+    static_configs:
+      - targets: ['localhost:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # MySQL database metrics
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['localhost:3306']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Nginx metrics (if using)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['localhost:80']
+    metrics_path: '/nginx_status'
+    scrape_interval: 15s
+
+# Alert rules
+rule_files:
+  - 'prometheus_alerts.yml'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+
+---
+# File: prometheus_alerts.yml
+# Alerting rules for PATH B Day 3 monitoring
+
+groups:
+  - name: 'smart-health-ai'
+    interval: 30s
+    rules:
+      # Response time alerts
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, request_duration_ms) > 1000
+        for: 1m
+        labels:
+          severity: 'warning'
+          component: 'response-time'
+        annotations:
+          summary: 'High response time detected'
+          description: 'P95 response time is {{ $value }}ms, exceeding 1000ms threshold'
+
+      # Error rate alerts
+      - alert: HighErrorRate
+        expr: |
+          (sum(rate(http_requests_total{status=~'5..'}[5m])) / sum(rate(http_requests_total[5m]))) > 0.05
+        for: 5m
+        labels:
+          severity: 'critical'
+          component: 'error-rate'
+        annotations:
+          summary: 'High error rate detected'
+          description: 'Error rate is {{ $value | humanizePercentage }}, exceeding 5% threshold'
+
+      # Database connection alerts
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          mysql_global_status_threads_connected > 95
+        for: 2m
+        labels:
+          severity: 'critical'
+          component: 'database'
+        annotations:
+          summary: 'Database connection pool nearly exhausted'
+          description: 'Active connections: {{ $value }}, approaching limit'
+
+      # Cache hit rate alerts
+      - alert: LowCacheHitRate
+        expr: |
+          (sum(rate(cache_hits[5m])) / (sum(rate(cache_hits[5m])) + sum(rate(cache_misses[5m])))) < 0.5
+        for: 5m
+        labels:
+          severity: 'warning'
+          component: 'cache'
+        annotations:
+          summary: 'Low cache hit rate'
+          description: 'Cache hit rate is {{ $value | humanizePercentage }}, below 50% target'
+
+      # Throughput alerts
+      - alert: LowThroughput
+        expr: |
+          sum(rate(http_requests_total[1m])) < 10
+        for: 2m
+        labels:
+          severity: 'warning'
+          component: 'throughput'
+        annotations:
+          summary: 'Low request throughput'
+          description: 'Requests per second: {{ $value }}, below expected baseline'
+
+      # Slow query alerts
+      - alert: SlowQueriesDetected
+        expr: |
+          sum(rate(slow_queries[5m])) > 10
+        for: 5m
+        labels:
+          severity: 'warning'
+          component: 'database'
+        annotations:
+          summary: 'Slow queries detected'
+          description: 'Slow query rate: {{ $value }} per second'
+
+      # Memory pressure
+      - alert: HighMemoryUsage
+        expr: |
+          (process_resident_memory_bytes / node_memory_memtotal_bytes) > 0.85
+        for: 2m
+        labels:
+          severity: 'warning'
+          component: 'memory'
+        annotations:
+          summary: 'High memory usage detected'
+          description: 'Memory usage: {{ $value | humanizePercentage }}'
+
+      # Request deduplication effectiveness
+      - alert: LowDeduplicationRate
+        expr: |
+          (sum(rate(deduplicated_requests[5m])) / sum(rate(http_requests_total[5m]))) < 0.02
+        for: 5m
+        labels:
+          severity: 'info'
+          component: 'deduplication'
+        annotations:
+          summary: 'Low request deduplication rate'
+          description: 'Deduplication rate: {{ $value | humanizePercentage }}, very low duplicate detection'

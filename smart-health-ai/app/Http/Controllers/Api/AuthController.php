@@ -6,22 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
+use App\Models\Tenant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
-class AuthController extends Controller implements HasMiddleware
+class AuthController extends Controller
 {
     /**
-     * Get the middleware that should be assigned to the controller.
+     * Create a new AuthController instance.
+     *
+     * @return void
      */
-    public static function middleware(): array
+    public function __construct()
     {
-        return [
-            new Middleware('auth:api', except: ['login', 'register']),
-        ];
+        $this->middleware('auth:api', ['except' => ['login', 'register']]);
     }
 
 
@@ -32,10 +33,17 @@ class AuthController extends Controller implements HasMiddleware
      */
     public function register(RegisterRequest $request): JsonResponse
     {
+        // Get or create default tenant for new users
+        $tenant = Tenant::firstOrCreate(
+            ['domain' => 'default.smarthealth.ai'],
+            ['name' => 'Default Tenant']
+        );
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'tenant_id' => $tenant->id,
         ]);
 
         return response()->json([
