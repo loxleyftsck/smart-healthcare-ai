@@ -130,6 +130,39 @@ The Smart Healthcare AI takes security seriously.
 
 ---
 
+## 🏥 Healthcare Compliance & Standards
+
+Smart Healthcare AI is designed with healthcare interoperability and compliance at its core.
+
+### Standards & Regulations
+- **HL7 FHIR 4.0** - RESTful healthcare data exchange
+- **HL7 v2** - Legacy system compatibility
+- **Terminologies** - ICD-10, SNOMED CT, LOINC, CPT/HCPCS
+- **HIPAA** - US Healthcare Privacy & Security Rule compliance
+- **UU PDP Indonesia** - Indonesian data privacy law compliance
+- **SATUSEHAT** - Indonesian national health information exchange
+
+### Documentation
+- **[Healthcare Standards Guide](HEALTHCARE_STANDARDS_COMPLETE.md)** (2,840 lines)
+  - HL7 FHIR vs HL7 v2 comparison
+  - Medical terminology systems
+  - Regulatory frameworks (HIPAA, UU PDP)
+  - Open-source alternatives
+
+- **[Implementation Guide](HEALTHCARE_IMPLEMENTATION_PRACTICAL.md)** (2,500 lines)
+  - FHIR resource creation patterns
+  - Database-to-FHIR mapping
+  - Encryption & security implementation
+  - SATUSEHAT integration
+
+- **[Regulations & Licensing](HEALTHCARE_REGULATIONS_AND_LICENSING.md)** (3,600 lines)
+  - HIPAA vs UU PDP detailed comparison
+  - Data subject rights implementation
+  - 3-phase compliance roadmap
+  - Dual-license strategy (MIT + Apache 2.0 + Proprietary)
+
+---
+
 ## 📊 Performance 
 
 **Optimization Implementation (PATH B):**
